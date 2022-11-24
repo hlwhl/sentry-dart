@@ -31,6 +31,7 @@ mixin SentryFlutter {
 
   static Future<void> init(
     FlutterOptionsConfiguration optionsConfiguration, {
+    bool enableFlutterErrorCatcher = false,
     AppRunner? appRunner,
     @internal PackageLoader packageLoader = _loadPackageInfo,
     @internal MethodChannel channel = _channel,
@@ -57,6 +58,7 @@ mixin SentryFlutter {
     // first step is to install the native integration and set default values,
     // so we are able to capture future errors.
     final defaultIntegrations = _createDefaultIntegrations(
+      enableFlutterErrorCatcher,
       packageLoader,
       channel,
       flutterOptions,
@@ -107,6 +109,7 @@ mixin SentryFlutter {
   /// Install default integrations
   /// https://medium.com/flutter-community/error-handling-in-flutter-98fce88a34f0
   static List<Integration> _createDefaultIntegrations(
+    bool enableFlutterErrorCatcher,
     PackageLoader packageLoader,
     MethodChannel channel,
     SentryFlutterOptions options,
@@ -120,15 +123,17 @@ mixin SentryFlutter {
     integrations.add(WidgetsFlutterBindingIntegration());
 
     // Use PlatformDispatcher.onError instead of zones.
-    if (isOnErrorSupported) {
+    if (isOnErrorSupported && enableFlutterErrorCatcher) {
       integrations.add(OnErrorIntegration());
     }
 
-    // Will catch any errors that may occur in the Flutter framework itself.
-    integrations.add(FlutterErrorIntegration());
+    if (enableFlutterErrorCatcher) {
+      // Will catch any errors that may occur in the Flutter framework itself.
+      integrations.add(FlutterErrorIntegration());
 
-    // This tracks Flutter application events, such as lifecycle events.
-    integrations.add(WidgetsBindingIntegration());
+      // This tracks Flutter application events, such as lifecycle events.
+      integrations.add(WidgetsBindingIntegration());
+    }
 
     // The ordering here matters, as we'd like to first start the native integration.
     // That allow us to send events to the network and then the Flutter integrations.
